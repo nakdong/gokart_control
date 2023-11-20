@@ -23,18 +23,17 @@ void setup() {
 }
 
 void loop() {
+  // 아날로그 값에 이동 평균 필터 적용
   total -= readings[readIndex];
   readings[readIndex] = analogRead(acceleratorPin);
   total += readings[readIndex];
   readIndex = (readIndex + 1) % numReadings;
   average = total / numReadings;
 
-  int s = map(average, 180, 874, 0, 255);
+  // 아날로그 값 범위 제한
+  int s = constrain(map(average, 180, 874, 0, 255), 0, 255);
 
-  // 최솟값 및 최댓값 제한
-  s = constrain(s, 0, 255);
-
-  // 플러그가 뽑혔을 때를 감지
+  // 급격한 변화 감지
   if (s < 5) {
     s = 0; // 급격한 변화가 감지되면 속도를 0으로 설정
     error = true;
@@ -42,16 +41,18 @@ void loop() {
     error = false;
   }
 
-  // 플러그 뽑힘에 대한 긴급 정지
+  // 플러그 뽑힘 감지
   if (digitalRead(errorPin) == HIGH) {
     error = true;
   }
 
+  // 에러 상태에 따른 동작 결정
   if (error) {
     // 에러 상태에서는 정지
     digitalWrite(motorDirectionPin, HIGH);
     analogWrite(motorSpeedPin, 0);
   } else {
+    // 정상 상태에서 토글 및 모터 제어
     if (s == 255 && millis() - lastToggleTime >= toggleInterval) {
       toggle = !toggle;
       lastToggleTime = millis();
@@ -65,8 +66,8 @@ void loop() {
       Serial.println(s);
     } else {
       digitalWrite(motorDirectionPin, LOW);
-      analogWrite(motorSpeedPin, abs(s));
-      Serial.println(abs(s));
+      analogWrite(motorSpeedPin, s);
+      Serial.println(s);
     }
   }
 }
